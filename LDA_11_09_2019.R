@@ -1,15 +1,19 @@
-
-library(RISMED)
+setwd("~/Desktop/Intro to Business Analytics")
+#install.packages("RISMED")
+library(RISmed)
 library(tm)
-res <- EUtilsSummary('chunhua weng', type='esearch', db='pubmed')
+res <- EUtilsSummary('carol friedman', type='esearch', db='pubmed')
 summary(res)
-QueryId(res) #some extracts lack MeSH extractable terms; we took those out
+QueryId(res) 
 
 fetch<-EUtilsGet(res)
+
+fetch
 mesh<-Mesh(fetch)
 mesh
 
 completed_df <- setNames(data.frame(matrix(ncol = 2, nrow = 0)), c("Index", "Terms"))
+completed_df
 for (i in 1:length(mesh))
 {
   if(mesh[i]!='NA'){
@@ -33,7 +37,7 @@ meshTermList<-as.list(completed_df["Terms"])
 meshTermList
 s <- strsplit(as.character(meshTermList$Terms), ',')
 AllTerms<-data.frame(AllMeshTerms=unlist(s))
-
+AllTerms
 #####LDA part
 library(textmineR)
 
@@ -62,8 +66,8 @@ model <- FitLdaModel(dtm = dtm,
                      k = 20,
                      iterations = 500, 
                      burnin = 50,#180
-                     alpha = 0.1,
-                     beta = 0.05,
+                     alpha = 0.1, #Prior-topics over documents
+                     beta = 0.05, #Prior-words over topics
                      optimize_alpha = TRUE,
                      calc_likelihood = TRUE,
                      calc_coherence = TRUE,
@@ -73,17 +77,18 @@ model <- FitLdaModel(dtm = dtm,
 # probabilistic coherence, a measure of topic quality
 # this measure can be used with any topic model, not just probabilistic ones
 summary(model$coherence)
-hist(model$coherence, 
-     col= "blue", 
-     main = "Histogram of probabilistic coherence")
+#hist(model$coherence, 
+     
+#col= "blue", 
+ #    main = "Histogram of probabilistic coherence")
 
 # Get the top terms of each topic
-model$top_terms <- GetTopTerms(phi = model$phi, M = 5)
+model$top_terms <- GetTopTerms(phi = model$phi, M = 5) #higher the phi, higher the prob that a word belongs to a given topic
 head(t(model$top_terms))
-model$prevalence <- colSums(model$theta) / sum(model$theta) * 100
+model$prevalence <- colSums(model$theta) / sum(model$theta) * 100 #theta-per document probabilities of topics
 head(t(model$prevalence))
 # prevalence should be proportional to alpha
-plot(model$prevalence, model$alpha, xlab = "prevalence", ylab = "alpha")
+#plot(model$prevalence, model$alpha, xlab = "prevalence", ylab = "alpha")
 
 
 model$labels <- LabelTopics(assignments = model$theta > 0.05, 
@@ -102,7 +107,7 @@ model$summary <- data.frame(topic = rownames(model$phi),
                             }),
                             stringsAsFactors = FALSE)
 model$summary[ order(model$summary$prevalence, decreasing = TRUE) , ][ 1:10 , ]
-model$labels[10]
+model$labels
 ##### Trial 2: Using '_' terms
 df_tt=as.data.frame(model$summary$top_terms)
 df_tt
